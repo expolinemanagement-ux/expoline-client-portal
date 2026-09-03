@@ -1,6 +1,269 @@
-generator client { provider = "prisma-client-js" }
-datasource db { provider = "postgresql" url = env("DATABASE_URL") }
-enum Role { SUPER_ADMIN EXPOLINE_STAFF COMPANY_HR_MANAGER COMPANY_HR_USER }
-model Company { id String @id @default(cuid()) name String createdAt DateTime @default(now()) users User[] personnel Personnel[] }
-model User { id String @id @default(cuid()) name String email String @unique role Role companyId String? company Company? @relation(fields:[companyId],references:[id]) }
-model Personnel { id String @id @default(cuid()) companyId String company Company @relation(fields:[companyId],references:[id]) fullName String }
+// Draft database for Expoline Client Portal
+// PostgreSQL + Prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  EXPOLINE_STAFF
+  COMPANY_HR_MANAGER
+  COMPANY_HR_USER
+}
+
+enum PersonnelStatus {
+  CANDIDATE
+  RECRUITING
+  PROCESSING
+  ACTIVE
+  INACTIVE
+}
+
+enum RecordStatus {
+  VALID
+  EXPIRING_SOON
+  EXPIRED
+  PENDING
+  NOT_REQUIRED
+}
+
+enum RequestStatus {
+  PENDING
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REVISION_REQUIRED
+  REJECTED
+  CANCELLED
+}
+
+enum RequestPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum DocumentCategory {
+  PASSPORT
+  IDENTITY
+  EMPLOYMENT
+  VISA
+  WORK_PERMIT
+  MEDICAL
+  INSURANCE
+  PHOTO
+  OTHER
+}
+
+model Company {
+  id                 String      @id @default(cuid())
+  name               String
+  registrationNumber String?
+  address            String?
+  contactEmail       String?
+  contactPhone       String?
+  status             Boolean     @default(true)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  users              User[]
+  personnel          Personnel[]
+  requests           Request[]
+  documents          Document[]
+}
+
+model User {
+  id                String   @id @default(cuid())
+  name              String
+  email             String   @unique
+  passwordHash      String?
+  role              Role
+  companyId         String?
+  company           Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  preferredLanguage String   @default("en")
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  uploadedDocuments Document[] @relation("UploadedDocuments")
+  createdRequests   Request[]  @relation("CreatedRequests")
+  notifications     Notification[]
+}
+
+model Personnel {
+  id               String          @id @default(cuid())
+  companyId        String
+  company          Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  fullName         String
+  chineseName      String?
+  nationality      String?
+  passportNumber   String?
+  passportExpiry   DateTime?
+  dateOfBirth      DateTime?
+  position         String?
+  status           PersonnelStatus @default(CANDIDATE)
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  documents        Document[]
+  visas            Visa[]
+  workPermits      WorkPermit[]
+  medicalRecords   MedicalRecord[]
+  insuranceRecords InsuranceRecord[]
+  requests         Request[]
+
+  @@index([companyId])
+  @@index([passportNumber])
+}
+
+model Document {
+  id           String           @id @default(cuid())
+  companyId    String
+  personnelId  String?
+  company      Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  personnel    Personnel?       @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+
+  category     DocumentCategory
+  name         String
+  storageKey   String
+  mimeType     String?
+  sizeBytes    Int?
+  issueDate    DateTime?
+  expiryDate   DateTime?
+  status       RecordStatus     @default(VALID)
+
+  uploadedById String?
+  uploadedBy   User?            @relation("UploadedDocuments", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([companyId])
+  @@index([personnelId])
+  @@index([expiryDate])
+}
+
+model Visa {
+  id           String       @id @default(cuid())
+  personnelId  String
+  personnel    Personnel    @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+
+  visaNumber   String?
+  visaType     String?
+  issueDate    DateTime?
+  expiryDate   DateTime?
+  status       RecordStatus @default(PENDING)
+  notes        String?
+
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([personnelId])
+  @@index([expiryDate])
+}
+
+model WorkPermit {
+  id            String       @id @default(cuid())
+  personnelId   String
+  personnel     Personnel    @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+
+  permitNumber  String?
+  permitType    String?
+  issueDate     DateTime?
+  expiryDate    DateTime?
+  status        RecordStatus @default(PENDING)
+  notes         String?
+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([personnelId])
+  @@index([expiryDate])
+}
+
+model MedicalRecord {
+  id              String       @id @default(cuid())
+  personnelId     String
+  personnel       Personnel    @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+
+  medicalType     String?
+  completionDate  DateTime?
+  expiryDate      DateTime?
+  status          RecordStatus @default(PENDING)
+  notes           String?
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([personnelId])
+  @@index([expiryDate])
+}
+
+model InsuranceRecord {
+  id              String       @id @default(cuid())
+  personnelId     String
+  personnel       Personnel    @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+
+  provider        String?
+  policyNumber    String?
+  coverageType    String?
+  startDate       DateTime?
+  expiryDate      DateTime?
+  status          RecordStatus @default(PENDING)
+  notes           String?
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([personnelId])
+  @@index([expiryDate])
+}
+
+model Request {
+  id            String          @id @default(cuid())
+  companyId     String
+  personnelId   String?
+
+  company       Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  personnel     Personnel?      @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+
+  title         String
+  description   String?
+  priority      RequestPriority @default(NORMAL)
+  dueDate       DateTime?
+  status        RequestStatus   @default(PENDING)
+
+  createdById   String
+  createdBy     User            @relation("CreatedRequests", fields: [createdById], references: [id])
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([companyId])
+  @@index([personnelId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title     String
+  message   String
+  type      String
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
