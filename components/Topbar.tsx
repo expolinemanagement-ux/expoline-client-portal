@@ -1,0 +1,1 @@
+export default function Topbar(){return <header className="topbar"><div><strong>Good evening, Admin</strong><p>Manage your companies, personnel and compliance.</p></div><div className="language">EN <span>中文</span><button>Admin</button></div></header>

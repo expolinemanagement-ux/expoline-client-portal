@@ -1,0 +1,1 @@
+export default function StatCard({title,value,kind}:{title:string,value:string,kind?:string}){return <div className="statCard"><div className="statTitle">{title}</div><div className={"statValue "+(kind||'')}>{value}</div></div>}
