@@ -1,0 +1,4 @@
+import Sidebar from '../../components/Sidebar';
+import Topbar from '../../components/Topbar';
+import {companies} from '../../lib/demo-data';
+export default function Companies(){return <div className='appShell'><Sidebar/><main className='main'><Topbar/><section className='content'><div className='pageHeading'><div><h1>Companies</h1><p>Manage client companies and HR portal access</p></div><button className='primary'>+ Add Company</button></div><section className='panel'><table className='dataTable'><thead><tr><th>Company</th><th>Country</th><th>HR Users</th><th>Personnel</th><th>Status</th></tr></thead><tbody>{companies.map(c=><tr key={c.id}><td><b>{c.name}</b></td><td>{c.country}</td><td>{c.hrUsers} / 3</td><td>{c.personnel}</td><td>{c.status}</td></tr>)}</tbody></table></section></section></main></div>}
