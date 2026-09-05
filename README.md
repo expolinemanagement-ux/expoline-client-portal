@@ -24,11 +24,24 @@ All test identifiers are clearly marked with `TEST-` or `demo.expoline.example`.
 
 1. Copy `.env.example` to `.env`.
 2. Set a local PostgreSQL password in `.env`. Never commit `.env`.
-3. Install dependencies with `npm install`.
-4. Start PostgreSQL with `npm run db:up`.
-5. Push the Prisma schema with `npm run db:push`.
-6. Load the synthetic dataset with `npm run db:seed`.
-7. Start the portal with `npm run dev`.
+3. Generate a long random `AUTH_SECRET` and set it in `.env`.
+4. Optionally change `DEMO_PASSWORD` from the default before seeding.
+5. Install dependencies with `npm install`.
+6. Start PostgreSQL with `npm run db:up`.
+7. Push the Prisma schema with `npm run db:push`.
+8. Load the synthetic dataset and demo password hashes with `npm run db:seed`.
+9. Start the portal with `npm run dev`.
+
+### Demo login
+
+After `npm run db:seed`, all synthetic users receive the `DEMO_PASSWORD` value (default `Demo123!`). Example accounts include:
+
+- `admin@demo.expoline.example` — Super Admin
+- `staff@demo.expoline.example` — Expoline Staff
+- `manager-<company-id>@demo.expoline.example` — Company HR Manager
+- `hr-<company-id>@demo.expoline.example` — Company HR User
+
+The generated session uses an HttpOnly signed cookie. Company HR users are scoped to their own company in the main dashboard/list views and protected document/request/compliance APIs.
 
 The PostgreSQL database uses a Docker named volume so database data persists when the container is stopped and started again. The database port is bound to localhost for the local development setup.
 
@@ -49,4 +62,4 @@ The `-v` option permanently removes the named database volume, so do not use it 
 
 ## Production transition
 
-Before real Expoline data is introduced, the project still needs production authentication, company-level access control, secure document storage, audit logging, validated backups/restore, HTTPS, secret management, and a controlled data-import process. The synthetic seed should remain available for automated development/testing but must never be used to overwrite production data.
+Before real Expoline data is introduced, the project still needs production hardening: individual user password setup/reset, stronger session lifecycle management, complete authorization on every detail/update/delete route, audit logging, secure binary document storage/download controls, validated backups/restore, HTTPS, secret management, rate limiting/lockout, and a controlled data-import process. The synthetic seed should remain available for automated development/testing but must never be used to overwrite production data.
