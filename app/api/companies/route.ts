@@ -1,24 +1,3 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-
-export async function GET() {
-  const companies = await prisma.company.findMany({ orderBy: { name: 'asc' } });
-  return NextResponse.json(companies);
-}
-
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    if (!body.name?.trim()) return NextResponse.json({ error: 'Company name is required.' }, { status: 400 });
-    const company = await prisma.company.create({ data: {
-      name: body.name.trim(),
-      registrationNumber: body.registrationNumber?.trim() || null,
-      address: body.address?.trim() || null,
-      contactEmail: body.contactEmail?.trim() || null,
-      contactPhone: body.contactPhone?.trim() || null,
-    }});
-    return NextResponse.json(company, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: 'Unable to save company.' }, { status: 500 });
-  }
-}
+import {NextResponse} from 'next/server';import {prisma} from '@/lib/prisma';import {requireUser} from '@/lib/auth';
+export async function GET(){try{const user=await requireUser();const companies=await prisma.company.findMany({where:user.role==='SUPER_ADMIN'||user.role==='EXPOLINE_STAFF'?{}:{id:user.companyId||'__none__'},orderBy:{name:'asc'}});return NextResponse.json(companies)}catch{return NextResponse.json({error:'Unauthorized.'},{status:401})}}
+export async function POST(request:Request){try{const user=await requireUser();if(user.role!=='SUPER_ADMIN'&&user.role!=='EXPOLINE_STAFF')return NextResponse.json({error:'Only Expoline staff can create companies.'},{status:403});const body=await request.json();if(!body.name?.trim())return NextResponse.json({error:'Company name is required.'},{status:400});const company=await prisma.company.create({data:{name:body.name.trim(),registrationNumber:body.registrationNumber?.trim()||null,address:body.address?.trim()||null,contactEmail:body.contactEmail?.trim()||null,contactPhone:body.contactPhone?.trim()||null}});return NextResponse.json(company,{status:201})}catch(error){if(error instanceof Error&&error.message==='UNAUTHENTICATED')return NextResponse.json({error:'Unauthorized.'},{status:401});return NextResponse.json({error:'Unable to save company.'},{status:500})}}
