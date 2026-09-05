@@ -94,7 +94,8 @@ model User {
 
   uploadedDocuments Document[] @relation("UploadedDocuments")
   createdRequests   Request[]  @relation("CreatedRequests")
-  notifications     Notification[]
+  sentMessages      RequestMessage[] @relation("SentMessages")
+  notifications    Notification[]
 }
 
 model Personnel {
@@ -218,7 +219,7 @@ model InsuranceRecord {
   coverageType    String?
   startDate       DateTime?
   expiryDate      DateTime?
-  status          RecordStatus @default(PENDING)
+  status           RecordStatus @default(PENDING)
   notes           String?
 
   createdAt       DateTime     @default(now())
@@ -244,6 +245,7 @@ model Request {
 
   createdById   String
   createdBy     User            @relation("CreatedRequests", fields: [createdById], references: [id])
+  messages      RequestMessage[]
 
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
@@ -252,6 +254,19 @@ model Request {
   @@index([personnelId])
   @@index([status])
   @@index([dueDate])
+}
+
+model RequestMessage {
+  id        String   @id @default(cuid())
+  requestId String
+  request   Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Restrict)
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([requestId, createdAt])
+  @@index([senderId])
 }
 
 model Notification {
