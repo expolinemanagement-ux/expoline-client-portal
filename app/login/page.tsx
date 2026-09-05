@@ -1,0 +1,2 @@
+import LoginForm from '../../components/LoginForm';
+export default function LoginPage(){return <main className="loginShell"><section className="loginCard"><div className="logo">EXPOLINE<span>PVT LTD</span></div><h1>Client Portal</h1><p>Sign in to manage personnel, documents, requests and compliance.</p><LoginForm/><small className="muted">Demo only: accounts are synthetic and must be replaced before production.</small></section></main>}
