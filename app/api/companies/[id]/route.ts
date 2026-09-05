@@ -1,10 +1,96 @@
-import {NextResponse} from 'next/server';
-import {prisma} from '@/lib/prisma';
-import {requireUser,canAccessCompany} from '@/lib/auth';
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { audit } from '@/lib/audit';
+import { canAccessCompany, requireUser } from '@/lib/auth';
 
-type Params={params:Promise<{id:string}>};
-export async function GET(_request:Request,{params}:Params){try{const user=await requireUser();const {id}=await params;if(!canAccessCompany(user,id))return NextResponse.json({error:'Company not found.'},{status:404});const company=await prisma.company.findUnique({where:{id},include:{users:{orderBy:{createdAt:'asc'}},personnel:{orderBy:{createdAt:'desc'}},requests:{orderBy:{createdAt:'desc'},take:20},_count:{select:{users:true,personnel:true,requests:true,documents:true}}});if(!company)return NextResponse.json({error:'Company not found.'},{status:404});return NextResponse.json(company);}catch(error){if(error instanceof Error&&error.message==='UNAUTHENTICATED')return NextResponse.json({error:'Unauthorized.'},{status:401});return NextResponse.json({error:'Unable to load company.'},{status:500});}}
+type Params = { params: Promise<{ id: string }> };
 
-export async function PUT(request:Request,{params}:Params){try{const user=await requireUser();const {id}=await params;if(!canAccessCompany(user,id))return NextResponse.json({error:'Company not found.'},{status:404});const body=await request.json();if(!body.name?.trim())return NextResponse.json({error:'Company name is required.'},{status:400});if(user.role!=='SUPER_ADMIN'&&user.role!=='EXPOLINE_STAFF')return NextResponse.json({error:'Only Expoline staff can update company details.'},{status:403});const company=await prisma.company.update({where:{id},data:{name:body.name.trim(),registrationNumber:body.registrationNumber?.trim()||null,address:body.address?.trim()||null,contactEmail:body.contactEmail?.trim()||null,contactPhone:body.contactPhone?.trim()||null,status:body.status!==false}});return NextResponse.json(company);}catch(error){if(error instanceof Error&&error.message==='UNAUTHENTICATED')return NextResponse.json({error:'Unauthorized.'},{status:401});return NextResponse.json({error:'Unable to update company.'},{status:500});}}
+export async function GET(_request: Request, { params }: Params) {
+  try {
+    const user = await requireUser();
+    const { id } = await params;
+    if (!canAccessCompany(user, id)) {
+      return NextResponse.json({ error: 'Company not found.' }, { status: 404 });
+    }
 
-export async function DELETE(_request:Request,{params}:Params){try{const user=await requireUser();const {id}=await params;if(!canAccessCompany(user,id))return NextResponse.json({error:'Company not found.'},{status:404});if(user.role!=='SUPER_ADMIN')return NextResponse.json({error:'Only the super admin can delete a company.'},{status:403});await prisma.company.delete({where:{id}});return NextResponse.json({success:true});}catch(error){if(error instanceof Error&&error.message==='UNAUTHENTICATED')return NextResponse.json({error:'Unauthorized.'},{status:401});return NextResponse.json({error:'Unable to delete company.'},{status:500});}}
+    const company = await prisma.company.findUnique({
+      where: { id },
+      include: {
+        users: { orderBy: { createdAt: 'asc' } },
+        personnel: { orderBy: { createdAt: 'desc' } },
+        requests: { orderBy: { createdAt: 'desc' }, take: 20 },
+        _count: { select: { users: true, personnel: true, requests: true, documents: true } },
+      },
+    });
+
+    if (!company) {
+      return NextResponse.json({ error: 'Company not found.' }, { status: 404 });
+    }
+    return NextResponse.json(company);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'UNAUTHENTICATED') {
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    }
+    return NextResponse.json({ error: 'Unable to load company.' }, { status: 500 });
+  }
+}
+
+export async function PUT(request: Request, { params }: Params) {
+  try {
+    const user = await requireUser();
+    const { id } = await params;
+    if (!canAccessCompany(user, id)) {
+      return NextResponse.json({ error: 'Company not found.' }, { status: 404 });
+    }
+    if (user.role !== 'SUPER_ADMIN' && user.role !== 'EXPOLINE_STAFF') {
+      return NextResponse.json({ error: 'Only Expoline staff can update company details.' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    if (!body.name?.trim()) {
+      return NextResponse.json({ error: 'Company name is required.' }, { status: 400 });
+    }
+
+    const company = await prisma.company.update({
+      where: { id },
+      data: {
+        name: body.name.trim(),
+        registrationNumber: body.registrationNumber?.trim() || null,
+        address: body.address?.trim() || null,
+        contactEmail: body.contactEmail?.trim() || null,
+        contactPhone: body.contactPhone?.trim() || null,
+        status: body.status !== false,
+      },
+    });
+
+    await audit(user.id, company.id, 'UPDATE', 'Company', company.id, { name: company.name });
+    return NextResponse.json(company);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'UNAUTHENTICATED') {
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    }
+    return NextResponse.json({ error: 'Unable to update company.' }, { status: 500 });
+  }
+}
+
+export async function DELETE(_request: Request, { params }: Params) {
+  try {
+    const user = await requireUser();
+    const { id } = await params;
+    if (!canAccessCompany(user, id)) {
+      return NextResponse.json({ error: 'Company not found.' }, { status: 404 });
+    }
+    if (user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'Only the super admin can delete a company.' }, { status: 403 });
+    }
+
+    await prisma.company.delete({ where: { id } });
+    await audit(user.id, id, 'DELETE', 'Company', id);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'UNAUTHENTICATED') {
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    }
+    return NextResponse.json({ error: 'Unable to delete company.' }, { status: 500 });
+  }
+}
