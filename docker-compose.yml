@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:18
+    container_name: expoline-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: expoline
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: expoline
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - expoline_db:/var/lib/postgresql
+
+volumes:
+  expoline_db:
