@@ -1,0 +1,2 @@
+import {prisma} from '@/lib/prisma';
+export async function audit(userId:string|undefined,companyId:string|undefined,action:string,entityType:string,entityId?:string,details?:unknown){try{await prisma.auditLog.create({data:{userId:userId||null,companyId:companyId||null,action,entityType,entityId:entityId||null,details:details===undefined?null:JSON.stringify(details)}})}catch(error){console.error('Audit log failed',error)}}
