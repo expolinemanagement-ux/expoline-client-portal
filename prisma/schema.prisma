@@ -10,275 +10,207 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  SUPER_ADMIN
-  EXPOLINE_STAFF
-  COMPANY_HR_MANAGER
-  COMPANY_HR_USER
-}
-
-enum PersonnelStatus {
-  CANDIDATE
-  RECRUITING
-  PROCESSING
-  ACTIVE
-  INACTIVE
-}
-
-enum RecordStatus {
-  VALID
-  EXPIRING_SOON
-  EXPIRED
-  PENDING
-  NOT_REQUIRED
-}
-
-enum RequestStatus {
-  PENDING
-  SUBMITTED
-  UNDER_REVIEW
-  APPROVED
-  REVISION_REQUIRED
-  REJECTED
-  CANCELLED
-}
-
-enum RequestPriority {
-  LOW
-  NORMAL
-  HIGH
-  URGENT
-}
-
-enum DocumentCategory {
-  PASSPORT
-  IDENTITY
-  EMPLOYMENT
-  VISA
-  WORK_PERMIT
-  MEDICAL
-  INSURANCE
-  PHOTO
-  OTHER
-}
+enum Role { SUPER_ADMIN EXPOLINE_STAFF COMPANY_HR_MANAGER COMPANY_HR_USER }
+enum PersonnelStatus { CANDIDATE RECRUITING PROCESSING ACTIVE INACTIVE }
+enum RecordStatus { VALID EXPIRING_SOON EXPIRED PENDING NOT_REQUIRED }
+enum RequestStatus { PENDING SUBMITTED UNDER_REVIEW APPROVED REVISION_REQUIRED REJECTED CANCELLED }
+enum RequestPriority { LOW NORMAL HIGH URGENT }
+enum DocumentCategory { PASSPORT IDENTITY EMPLOYMENT VISA WORK_PERMIT MEDICAL INSURANCE PHOTO OTHER }
 
 model Company {
-  id                 String      @id @default(cuid())
-  name               String
+  id String @id @default(cuid())
+  name String
   registrationNumber String?
-  address            String?
-  contactEmail       String?
-  contactPhone       String?
-  status             Boolean     @default(true)
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
-
-  users              User[]
-  personnel          Personnel[]
-  requests           Request[]
-  documents          Document[]
+  address String?
+  contactEmail String?
+  contactPhone String?
+  status Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users User[]
+  personnel Personnel[]
+  requests Request[]
+  documents Document[]
+  auditLogs AuditLog[]
 }
-
 model User {
-  id                String   @id @default(cuid())
-  name              String
-  email             String   @unique
-  passwordHash      String?
-  role              Role
-  companyId         String?
-  company           Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  preferredLanguage String   @default("en")
-  active            Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
+  id String @id @default(cuid())
+  name String
+  email String @unique
+  passwordHash String?
+  role Role
+  companyId String?
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  preferredLanguage String @default("en")
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   uploadedDocuments Document[] @relation("UploadedDocuments")
-  createdRequests   Request[]  @relation("CreatedRequests")
-  sentMessages      RequestMessage[] @relation("SentMessages")
-  notifications    Notification[]
+  createdRequests Request[] @relation("CreatedRequests")
+  sentMessages RequestMessage[] @relation("SentMessages")
+  notifications Notification[]
+  auditLogs AuditLog[]
 }
-
 model Personnel {
-  id               String          @id @default(cuid())
-  companyId        String
-  company          Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
-  fullName         String
-  chineseName      String?
-  nationality      String?
-  passportNumber   String?
-  passportExpiry   DateTime?
-  dateOfBirth      DateTime?
-  position         String?
-  status           PersonnelStatus @default(CANDIDATE)
-
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-
-  documents        Document[]
-  visas            Visa[]
-  workPermits      WorkPermit[]
-  medicalRecords   MedicalRecord[]
+  id String @id @default(cuid())
+  companyId String
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  fullName String
+  chineseName String?
+  nationality String?
+  passportNumber String?
+  passportExpiry DateTime?
+  dateOfBirth DateTime?
+  position String?
+  status PersonnelStatus @default(CANDIDATE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  documents Document[]
+  visas Visa[]
+  workPermits WorkPermit[]
+  medicalRecords MedicalRecord[]
   insuranceRecords InsuranceRecord[]
-  requests         Request[]
-
+  requests Request[]
   @@index([companyId])
   @@index([passportNumber])
 }
-
 model Document {
-  id           String           @id @default(cuid())
-  companyId    String
-  personnelId  String?
-  company      Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  personnel    Personnel?       @relation(fields: [personnelId], references: [id], onDelete: Cascade)
-
-  category     DocumentCategory
-  name         String
-  storageKey   String
-  mimeType     String?
-  sizeBytes    Int?
-  issueDate    DateTime?
-  expiryDate   DateTime?
-  status       RecordStatus     @default(VALID)
-
+  id String @id @default(cuid())
+  companyId String
+  personnelId String?
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  personnel Personnel? @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+  category DocumentCategory
+  name String
+  storageKey String
+  mimeType String?
+  sizeBytes Int?
+  issueDate DateTime?
+  expiryDate DateTime?
+  status RecordStatus @default(VALID)
   uploadedById String?
-  uploadedBy   User?            @relation("UploadedDocuments", fields: [uploadedById], references: [id], onDelete: SetNull)
-
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-
+  uploadedBy User? @relation("UploadedDocuments", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   @@index([companyId])
   @@index([personnelId])
   @@index([expiryDate])
 }
-
 model Visa {
-  id           String       @id @default(cuid())
-  personnelId  String
-  personnel    Personnel    @relation(fields: [personnelId], references: [id], onDelete: Cascade)
-
-  visaNumber   String?
-  visaType     String?
-  issueDate    DateTime?
-  expiryDate   DateTime?
-  status       RecordStatus @default(PENDING)
-  notes        String?
-
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-
+  id String @id @default(cuid())
+  personnelId String
+  personnel Personnel @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+  visaNumber String?
+  visaType String?
+  issueDate DateTime?
+  expiryDate DateTime?
+  status RecordStatus @default(PENDING)
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   @@index([personnelId])
   @@index([expiryDate])
 }
-
 model WorkPermit {
-  id            String       @id @default(cuid())
-  personnelId   String
-  personnel     Personnel    @relation(fields: [personnelId], references: [id], onDelete: Cascade)
-
-  permitNumber  String?
-  permitType    String?
-  issueDate     DateTime?
-  expiryDate    DateTime?
-  status        RecordStatus @default(PENDING)
-  notes         String?
-
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-
+  id String @id @default(cuid())
+  personnelId String
+  personnel Personnel @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+  permitNumber String?
+  permitType String?
+  issueDate DateTime?
+  expiryDate DateTime?
+  status RecordStatus @default(PENDING)
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   @@index([personnelId])
   @@index([expiryDate])
 }
-
 model MedicalRecord {
-  id              String       @id @default(cuid())
-  personnelId     String
-  personnel       Personnel    @relation(fields: [personnelId], references: [id], onDelete: Cascade)
-
-  medicalType     String?
-  completionDate  DateTime?
-  expiryDate      DateTime?
-  status          RecordStatus @default(PENDING)
-  notes           String?
-
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-
+  id String @id @default(cuid())
+  personnelId String
+  personnel Personnel @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+  medicalType String?
+  completionDate DateTime?
+  expiryDate DateTime?
+  status RecordStatus @default(PENDING)
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   @@index([personnelId])
   @@index([expiryDate])
 }
-
 model InsuranceRecord {
-  id              String       @id @default(cuid())
-  personnelId     String
-  personnel       Personnel    @relation(fields: [personnelId], references: [id], onDelete: Cascade)
-
-  provider        String?
-  policyNumber    String?
-  coverageType    String?
-  startDate       DateTime?
-  expiryDate      DateTime?
-  status           RecordStatus @default(PENDING)
-  notes           String?
-
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-
+  id String @id @default(cuid())
+  personnelId String
+  personnel Personnel @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+  provider String?
+  policyNumber String?
+  coverageType String?
+  startDate DateTime?
+  expiryDate DateTime?
+  status RecordStatus @default(PENDING)
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   @@index([personnelId])
   @@index([expiryDate])
 }
-
 model Request {
-  id            String          @id @default(cuid())
-  companyId     String
-  personnelId   String?
-
-  company       Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  personnel     Personnel?      @relation(fields: [personnelId], references: [id], onDelete: Cascade)
-
-  title         String
-  description   String?
-  priority      RequestPriority @default(NORMAL)
-  dueDate       DateTime?
-  status        RequestStatus   @default(PENDING)
-
-  createdById   String
-  createdBy     User            @relation("CreatedRequests", fields: [createdById], references: [id])
-  messages      RequestMessage[]
-
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-
+  id String @id @default(cuid())
+  companyId String
+  personnelId String?
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  personnel Personnel? @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+  title String
+  description String?
+  priority RequestPriority @default(NORMAL)
+  dueDate DateTime?
+  status RequestStatus @default(PENDING)
+  createdById String
+  createdBy User @relation("CreatedRequests", fields: [createdById], references: [id])
+  messages RequestMessage[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   @@index([companyId])
   @@index([personnelId])
   @@index([status])
   @@index([dueDate])
 }
-
 model RequestMessage {
-  id        String   @id @default(cuid())
+  id String @id @default(cuid())
   requestId String
-  request   Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  senderId  String
-  sender    User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Restrict)
-  body      String
+  request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  senderId String
+  sender User @relation("SentMessages", fields: [senderId], references: [id], onDelete: Restrict)
+  body String
   createdAt DateTime @default(now())
-
   @@index([requestId, createdAt])
   @@index([senderId])
 }
-
 model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  title     String
-  message   String
-  type      String
-  readAt    DateTime?
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title String
+  message String
+  type String
+  readAt DateTime?
   createdAt DateTime @default(now())
-
   @@index([userId])
+}
+model AuditLog {
+  id String @id @default(cuid())
+  userId String?
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  companyId String?
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  action String
+  entityType String
+  entityId String?
+  details String?
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
+  @@index([companyId, createdAt])
+  @@index([entityType, entityId])
 }
