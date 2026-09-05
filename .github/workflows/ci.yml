@@ -24,14 +24,12 @@ jobs:
           --health-retries 5
     env:
       DATABASE_URL: postgresql://expoline:ci_password@localhost:5432/expoline
-      AUTH_SECRET: ci-only-secret-change-me
-      DEMO_PASSWORD: Demo123!
+      AUTH_SECRET: ci-only-secret
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: 22
       - run: npm install
       - run: npx prisma generate
       - run: npx prisma db push
