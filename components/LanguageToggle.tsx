@@ -1,0 +1,1 @@
+'use client';import {useState} from 'react';export default function LanguageToggle(){const [lang,setLang]=useState<'en'|'zh'>('en');return <div className="language"><button className={lang==='en'?'activeLang':''} onClick={()=>setLang('en')}>EN</button><button className={lang==='zh'?'activeLang':''} onClick={()=>setLang('zh')}>中文</button></div>}
