@@ -1,1 +1,22 @@
-'use client';import {useState} from 'react';export default function LanguageToggle({initial='en'}:{initial?:string}){const [lang,setLang]=useState(initial);async function change(next:string){setLang(next);await fetch('/api/user/preferences',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({preferredLanguage:next})});document.cookie=`expoline_lang=${next}; path=/; max-age=31536000; samesite=lax`;location.reload();}return <div className="language"><button className={lang==='en'?'activeLang':''} onClick={()=>change('en')}>EN</button><button className={lang==='zh'?'activeLang':''} onClick={()=>change('zh')}>中文</button></div>
+'use client';
+import { useState } from 'react';
+
+export default function LanguageToggle({ initial = 'en' }: { initial?: string }) {
+  const [lang, setLang] = useState(initial);
+
+  async function change(next: string) {
+    setLang(next);
+    await fetch('/api/user/preferences', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preferredLanguage: next }),
+    });
+    document.cookie = `expoline_lang=${next}; path=/; max-age=31536000; samesite=lax`;
+    location.reload();
+  }
+
+  return <div className="language">
+    <button type="button" className={lang === 'en' ? 'activeLang' : ''} onClick={() => change('en')}>EN</button>
+    <button type="button" className={lang === 'zh' ? 'activeLang' : ''} onClick={() => change('zh')}>中文</button>
+  </div>;
+}
