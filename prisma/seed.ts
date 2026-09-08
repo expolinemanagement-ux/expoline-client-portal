@@ -90,7 +90,7 @@ async function main() {
         email: `manager-${company.id}@demo.expoline.example`,
         role: Role.COMPANY_HR_MANAGER,
         companyId: company.id,
-        preferredLanguage: company.language,
+        preferredLanguage: item.language,
       },
     });
 
@@ -100,7 +100,7 @@ async function main() {
         email: `hr-${company.id}@demo.expoline.example`,
         role: Role.COMPANY_HR_USER,
         companyId: company.id,
-        preferredLanguage: company.language,
+        preferredLanguage: item.language,
       },
     });
 
@@ -110,7 +110,7 @@ async function main() {
         email: `assistant-${company.id}@demo.expoline.example`,
         role: Role.COMPANY_HR_USER,
         companyId: company.id,
-        preferredLanguage: company.language,
+        preferredLanguage: item.language,
       },
     });
   }
