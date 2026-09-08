@@ -82,7 +82,7 @@ async function main() {
   const companies = [] as Array<{ id: string; name: string; language: string }>;
   for (const item of companySeed) {
     const company = await prisma.company.create({ data: item });
-    companies.push(company);
+    companies.push({ id: company.id, name: company.name, language: item.language });
 
     await prisma.user.create({
       data: {
