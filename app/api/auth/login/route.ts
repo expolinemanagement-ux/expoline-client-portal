@@ -9,35 +9,21 @@ export async function POST(request: Request) {
     const email = String(body.email || '').trim().toLowerCase();
     const password = String(body.password || '');
 
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
-    }
+    if (!email || !password) return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user || !user.active || !(await verifyPassword(password, user.passwordHash))) {
       return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
     }
 
-    const token = await createSessionToken(user.id);
+    const token = await createSessionToken(user.id, user.sessionVersion);
     const response = NextResponse.json({
       ok: true,
-      user: {
-        id: user.id,
-        name: user.name,
-        role: user.role,
-        companyId: user.companyId,
-        preferredLanguage: user.preferredLanguage,
-      },
+      user: { id: user.id, name: user.name, role: user.role, companyId: user.companyId, preferredLanguage: user.preferredLanguage },
     });
-
     response.cookies.set(COOKIE_NAME, token, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: MAX_AGE,
+      httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: MAX_AGE,
     });
-
     return response;
   } catch {
     return NextResponse.json({ error: 'Unable to sign in.' }, { status: 500 });
