@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   build:
-    name: Build and Prisma validation
+    name: Build, Prisma, and auth smoke tests
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -33,6 +33,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://expoline:ci_password@localhost:5432/expoline
       AUTH_SECRET: ci-only-secret
+      DEMO_PASSWORD: Demo123!
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -41,4 +42,6 @@ jobs:
       - run: npm install
       - run: npx prisma generate
       - run: npx prisma db push
+      - run: npm run db:seed
+      - run: npm run smoke:auth
       - run: npm run build
