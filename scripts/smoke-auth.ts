@@ -23,20 +23,32 @@ async function main() {
   }
   if (await verifyPassword('definitely-wrong', admins[0].passwordHash)) throw new Error('Incorrect password was accepted.');
 
+  const generatedHash = await hashPassword(password);
+  if (!(await verifyPassword(password, generatedHash))) throw new Error('Fresh password hash verification failed.');
+
   const adminToken = await createSessionToken(admins[0].id);
   const session = await verifySessionToken(adminToken);
   if (!session || session.sub !== admins[0].id) throw new Error('Valid session token was not accepted.');
   if (await verifySessionToken(`${adminToken}tampered`)) throw new Error('Tampered session token was accepted.');
 
-  const firstCompanyUser = companyUsers[0];
-  const otherCompany = companies.find(c => c.id !== firstCompanyUser.companyId);
-  if (!firstCompanyUser.companyId || !otherCompany) throw new Error('Could not establish company isolation test.');
-  if (!canAccessCompany(firstCompanyUser, firstCompanyUser.companyId)) throw new Error('Company user cannot access own company.');
-  if (canAccessCompany(firstCompanyUser, otherCompany.id)) throw new Error('Company user can access another company.');
-  if (!canAccessCompany(admins[0], otherCompany.id) || !canAccessCompany(staff[0], otherCompany.id)) throw new Error('Expoline staff roles lost cross-company access.');
+  const companyIds = new Set(companies.map(c => c.id));
+  for (const user of companyUsers) {
+    if (!user.companyId || !companyIds.has(user.companyId)) throw new Error(`Company HR user ${user.email} has an invalid company assignment.`);
+    for (const company of companies) {
+      const expected = company.id === user.companyId;
+      if (canAccessCompany(user, company.id) !== expected) {
+        throw new Error(`Company isolation failed for ${user.email} against company ${company.id}.`);
+      }
+    }
+  }
+
+  for (const company of companies) {
+    if (!canAccessCompany(admins[0], company.id)) throw new Error('SUPER_ADMIN lost cross-company access.');
+    if (!canAccessCompany(staff[0], company.id)) throw new Error('EXPOLINE_STAFF lost cross-company access.');
+  }
 
   console.log('AUTH SMOKE TEST PASSED');
-  console.log(`Verified ${users.length} active demo users, ${companies.length} companies, password hashing, signed sessions, tamper rejection, and company isolation.`);
+  console.log(`Verified ${users.length} active demo users, ${companies.length} companies, password hashing, signed sessions, tamper rejection, and full company isolation matrix.`);
 }
 
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => prisma.$disconnect());
