@@ -10,57 +10,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  SUPER_ADMIN
-  EXPOLINE_STAFF
-  COMPANY_HR_MANAGER
-  COMPANY_HR_USER
-}
-
-enum PersonnelStatus {
-  CANDIDATE
-  RECRUITING
-  PROCESSING
-  ACTIVE
-  INACTIVE
-}
-
-enum RecordStatus {
-  VALID
-  EXPIRING_SOON
-  EXPIRED
-  PENDING
-  NOT_REQUIRED
-}
-
-enum RequestStatus {
-  PENDING
-  SUBMITTED
-  UNDER_REVIEW
-  APPROVED
-  REVISION_REQUIRED
-  REJECTED
-  CANCELLED
-}
-
-enum RequestPriority {
-  LOW
-  NORMAL
-  HIGH
-  URGENT
-}
-
-enum DocumentCategory {
-  PASSPORT
-  IDENTITY
-  EMPLOYMENT
-  VISA
-  WORK_PERMIT
-  MEDICAL
-  INSURANCE
-  PHOTO
-  OTHER
-}
+enum Role { SUPER_ADMIN EXPOLINE_STAFF COMPANY_HR_MANAGER COMPANY_HR_USER }
+enum PersonnelStatus { CANDIDATE RECRUITING PROCESSING ACTIVE INACTIVE }
+enum RecordStatus { VALID EXPIRING_SOON EXPIRED PENDING NOT_REQUIRED }
+enum RequestStatus { PENDING SUBMITTED UNDER_REVIEW APPROVED REVISION_REQUIRED REJECTED CANCELLED }
+enum RequestPriority { LOW NORMAL HIGH URGENT }
+enum DocumentCategory { PASSPORT IDENTITY EMPLOYMENT VISA WORK_PERMIT MEDICAL INSURANCE PHOTO OTHER }
 
 model Company {
   id String @id @default(cuid())
@@ -87,6 +42,7 @@ model User {
   companyId String?
   company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   preferredLanguage String @default("en")
+  sessionVersion Int @default(0)
   active Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
