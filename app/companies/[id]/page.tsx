@@ -3,8 +3,10 @@ import Sidebar from '../../../components/Sidebar';
 import Topbar from '../../../components/Topbar';
 import CompanyEditForm from '../../../components/CompanyEditForm';
 import { prisma } from '../../../lib/prisma';
+import { canAccessCompany, requireUser } from '../../../lib/auth';
 
 export default async function CompanyDetail({ params }: { params: Promise<{ id: string }> }) {
+  const user = await requireUser();
   const { id } = await params;
   const company = await prisma.company.findUnique({
     where: { id },
@@ -15,7 +17,7 @@ export default async function CompanyDetail({ params }: { params: Promise<{ id: 
       _count: { select: { users: true, personnel: true, requests: true, documents: true } },
     },
   });
-  if (!company) notFound();
+  if (!company || !canAccessCompany(user, company.id)) notFound();
 
   return <div className='appShell'><Sidebar/><main className='main'><Topbar/><section className='content'>
     <div className='pageHeading'><div><a href='/companies'>← Companies</a><h1>{company.name}</h1><p>Client company profile and portal activity</p></div></div>
